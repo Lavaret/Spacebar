@@ -7,6 +7,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Psr\Log\LoggerInterface;
 use Michelf\MarkdownInterface;
+use Symfony\Component\Cache\Adapter\AdapterInterface;
 
 class ArticleController extends AbstractController
 {
@@ -21,7 +22,7 @@ class ArticleController extends AbstractController
   /**
   * @Route("/news/{slug}", name="show_article")
   */
-  public function show($slug, MarkdownInterface $markdown)
+  public function show($slug, MarkdownInterface $markdown, AdapterInterface $cache)
   {
     $comments = [
       'I ate a normal rock once. It did NOT taste like bacon!',
@@ -46,10 +47,18 @@ cow est ribeye adipisicing. Pig hamburger pork belly enim. Do porchetta minim ca
 fugiat.
 EOF;
 
+    $item = $cache->getItem('markdown_'.md5($articleContent));
+    if (!$item->isHit()) {
+      $item->set($markdown->transform($articleContent));
+      $cache->save($item);
+    }
+
+    $articleContent = $item->get();
+
     return $this->render('article/show.html.twig', [
       'title' => ucwords(str_replace('-', ' ', $slug)),
       'comments' => $comments,
-      'articleContent' => $markdown->transform($articleContent),
+      'articleContent' => $articleContent,
       'slug' => $slug
     ]);
   }
