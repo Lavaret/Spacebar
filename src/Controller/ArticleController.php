@@ -53,6 +53,7 @@ EOF;
       $cache->save($item);
     }
 
+
     $articleContent = $item->get();
 
     return $this->render('article/show.html.twig', [
